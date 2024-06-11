@@ -6,9 +6,12 @@ import gsap from "gsap";
 import RES from "./RES";
 
 let timer: NodeJS.Timeout;
+const topMargin = 450;
+const bottomMargin = 450;
 
 const Game = () => {
   const gameRef = useRef<HTMLDivElement>(null);
+  const imgContainerRef = useRef<HTMLDivElement>(null);
   const aniDone = useRef(false);
   const baseParam = useRef({
     lastScrollTime: 0,
@@ -38,6 +41,7 @@ const Game = () => {
   }, []);
 
   const handleScroll = () => {
+    /* 计算scrollTop */
     const currentScrollTop = gameRef.current?.scrollTop || 0;
     useGameStore.setState({ scrollY: currentScrollTop });
 
@@ -56,18 +60,22 @@ const Game = () => {
     timer = setTimeout(() => {
       useGameStore.setState({ scrollSpeed: 0 });
     }, 100);
+
+    
   };
 
   return (
     <>
       <GameWrapper className="game" ref={gameRef} onScroll={handleScroll}>
-        {RES.map((item, index) => {
-          return (
-            <div className="imgContainer" key={index}>
-              <img src={item} alt="img" />
-            </div>
-          );
-        })}
+        <div className="container">
+          {RES.map((item, index) => {
+            return (
+              <div className="imgContainer" key={index}>
+                <img src={item} alt="img" />
+              </div>
+            );
+          })}
+        </div>
       </GameWrapper>
     </>
   );

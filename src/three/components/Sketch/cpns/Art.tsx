@@ -10,6 +10,7 @@ interface IProp {
   width: number;
   height: number;
   src: string;
+  center: number;
 }
 
 const Art: FC<IProp> = ({
@@ -17,26 +18,28 @@ const Art: FC<IProp> = ({
   width = 800,
   height = 450,
   src,
+  center = 0,
 }) => {
   const diffuseTex = useTexture(src);
   const uniforms = useMemo(
     () => ({
       uDiffuse: new Uniform(diffuseTex),
       uTime: new Uniform(0),
-      uDisCenter: new Uniform(0),
+      uDisCenter: new Uniform(center),
     }),
     []
   );
 
   useFrame((state, delta) => {
     uniforms.uTime.value += delta;
+    uniforms.uDisCenter.value = center;
   });
 
   return (
     <mesh
       position={position}
       scale={[width, height, 1]}
-      rotation-y={-MathUtils.degToRad(30)}
+      rotation-y={-MathUtils.degToRad(15)}
       rotation-z={MathUtils.degToRad(6)}
     >
       <planeGeometry args={[1, 1, 32, 32]} />
