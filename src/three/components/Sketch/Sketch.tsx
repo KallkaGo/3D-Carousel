@@ -7,6 +7,11 @@ import { useShallow } from "zustand/react/shallow";
 import vertexShader from "@/three/components/shaders/sphere/vertex.glsl";
 import fragmentShader from "@/three/components/shaders/sphere/fragment.glsl";
 
+interface IBase {
+  isDone: boolean;
+  timer: NodeJS.Timeout | null;
+}
+
 const Sketch = () => {
   const { camera, event } = useThree(
     useShallow((state) => ({ camera: state.camera, event: state.events }))
@@ -18,7 +23,7 @@ const Sketch = () => {
       scrollSpeed: state.scrollSpeed,
     }))
   );
-
+  const baseRef = useRef<IBase>({ isDone: true, timer: null });
   const sphereRef = useRef<Mesh>(null);
   const followPosition = useRef<Vector3>(new Vector3(0, 0, 0));
   const loaded = useLoadedStore((state) => state.loaded);
@@ -37,6 +42,12 @@ const Sketch = () => {
     const distance = -camera.position.z / dir.z;
     const pos = camera.position.clone().add(dir.multiplyScalar(distance));
     followPosition.current.copy(pos);
+
+    baseRef.current.isDone = false;
+    baseRef.current.timer && clearTimeout(baseRef.current.timer);
+    baseRef.current.timer = setTimeout(() => {
+      baseRef.current.isDone = true;
+    }, 100);
   };
   const imgData = useMemo(() => {
     const imgList = [...document.querySelectorAll("img")];
@@ -87,10 +98,23 @@ const Sketch = () => {
   }, [controlDom]);
 
   useFrame((state, delta) => {
+    delta %= 1;
     if (sphereRef.current) {
       sphereRef.current.position.lerp(followPosition.current, delta * 12);
-      const dis = sphereRef.current.position.distanceTo(followPosition.current);
-      uniforms.uOpacity.value = MathUtils.clamp(dis / 10, 0, 1);
+      sphereRef.current.rotation.z += delta * 5;
+      if (baseRef.current.isDone) {
+        uniforms.uOpacity.value = MathUtils.lerp(
+          uniforms.uOpacity.value,
+          0,
+          delta * 3
+        );
+      } else {
+        uniforms.uOpacity.value = MathUtils.lerp(
+          uniforms.uOpacity.value,
+          1,
+          delta * 3
+        );
+      }
     }
   });
 
@@ -113,7 +137,7 @@ const Sketch = () => {
         })}
       </group>
 
-      <mesh ref={sphereRef} scale={[120, 120, 1]}>
+      <mesh ref={sphereRef} scale={[80, 80, 1]}>
         <planeGeometry args={[1, 1, 32, 32]}></planeGeometry>
         <shaderMaterial
           vertexShader={vertexShader}
