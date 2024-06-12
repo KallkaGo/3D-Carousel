@@ -1,13 +1,13 @@
-import { OrbitControls } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useGameStore, useInteractStore, useLoadedStore } from "@utils/Store";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MathUtils, PerspectiveCamera } from "three";
+import { useEffect, useMemo, useRef } from "react";
+import { MathUtils, Mesh, PerspectiveCamera, Uniform, Vector3 } from "three";
 import Art from "./cpns/Art";
 import { useShallow } from "zustand/react/shallow";
+import vertexShader from "@/three/components/shaders/sphere/vertex.glsl";
+import fragmentShader from "@/three/components/shaders/sphere/fragment.glsl";
 
 const Sketch = () => {
-  const [active, setActive] = useState(1);
   const { camera, event } = useThree(
     useShallow((state) => ({ camera: state.camera, event: state.events }))
   );
@@ -18,28 +18,26 @@ const Sketch = () => {
       scrollSpeed: state.scrollSpeed,
     }))
   );
+
+  const sphereRef = useRef<Mesh>(null);
+  const followPosition = useRef<Vector3>(new Vector3(0, 0, 0));
   const loaded = useLoadedStore((state) => state.loaded);
   const radiansToDegrees = (radians: number) => {
     return radians * (180 / Math.PI);
   };
 
-  useEffect(() => {
-    const fov = radiansToDegrees(
-      2 * Math.atan(window.innerHeight / 2 / camera.position.z)
+  const handleMove = (event: MouseEvent) => {
+    const vector = new Vector3(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      -(event.clientY / window.innerHeight) * 2 + 1,
+      0
     );
-    (camera as PerspectiveCamera).fov = fov;
-    camera.updateProjectionMatrix();
-  }, []);
-
-  useEffect(() => {
-    loaded && useLoadedStore.setState({ ready: true });
-  }, [loaded]);
-
-  useEffect(() => {
-    console.log(event);
-    event.connect!(controlDom);
-  }, [controlDom]);
-
+    vector.unproject(camera);
+    const dir = vector.sub(camera.position).normalize();
+    const distance = -camera.position.z / dir.z;
+    const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+    followPosition.current.copy(pos);
+  };
   const imgData = useMemo(() => {
     const imgList = [...document.querySelectorAll("img")];
     const arr = Array(imgList.length).fill(0);
@@ -58,22 +56,73 @@ const Sketch = () => {
     return data;
   }, [loaded, scrollY]);
 
+  const uniforms = useMemo(
+    () => ({
+      uOpacity: new Uniform(0),
+    }),
+    []
+  );
+
+  useEffect(() => {
+    const fov = radiansToDegrees(
+      2 * Math.atan(window.innerHeight / 2 / camera.position.z)
+    );
+    (camera as PerspectiveCamera).fov = fov;
+    console.log("fov", fov);
+    camera.updateProjectionMatrix();
+    window.addEventListener("mousemove", handleMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+    };
+  }, []);
+
+  useEffect(() => {
+    loaded && useLoadedStore.setState({ ready: true });
+  }, [loaded]);
+
+  useEffect(() => {
+    console.log(event);
+    event.connect!(controlDom);
+  }, [controlDom]);
+
+  useFrame((state, delta) => {
+    if (sphereRef.current) {
+      sphereRef.current.position.lerp(followPosition.current, delta * 12);
+      const dis = sphereRef.current.position.distanceTo(followPosition.current);
+      uniforms.uOpacity.value = MathUtils.clamp(dis / 10, 0, 1);
+    }
+  });
+
   return (
     <>
       {/* <OrbitControls domElement={controlDom} /> */}
       <color attach={"background"} args={["black"]} />
-      {imgData.map((item, index) => {
-        return (
-          <Art
-            key={index}
-            position={item.position as [number, number, number]}
-            width={item.width}
-            height={item.height}
-            src={item.url}
-            center={item.center}
-          />
-        );
-      })}
+      <group position={[0, 0, -150]}>
+        {imgData.map((item, index) => {
+          return (
+            <Art
+              key={index}
+              position={item.position as [number, number, number]}
+              width={item.width}
+              height={item.height}
+              src={item.url}
+              center={item.center}
+            />
+          );
+        })}
+      </group>
+
+      <mesh ref={sphereRef} scale={[120, 120, 1]}>
+        <planeGeometry args={[1, 1, 32, 32]}></planeGeometry>
+        <shaderMaterial
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={uniforms}
+          transparent
+          depthWrite={false}
+        ></shaderMaterial>
+      </mesh>
     </>
   );
 };

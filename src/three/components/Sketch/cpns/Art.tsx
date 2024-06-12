@@ -1,8 +1,15 @@
 import { useTexture } from "@react-three/drei";
 import { FC, useMemo } from "react";
-import vertexShader from "@/three/components/shaders/vertex.glsl";
-import fragmentShader from "@/three/components/shaders/fragment.glsl";
-import { DoubleSide, MathUtils, Uniform, Vector2, Vector3 } from "three";
+import vertexShader from "@/three/components/shaders/art/vertex.glsl";
+import fragmentShader from "@/three/components/shaders/art/fragment.glsl";
+import {
+  DoubleSide,
+  MathUtils,
+  SRGBColorSpace,
+  Uniform,
+  Vector2,
+  Vector3,
+} from "three";
 import { useFrame } from "@react-three/fiber";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -24,6 +31,7 @@ const Art: FC<IProp> = ({
 }) => {
   const { contextSafe } = useGSAP();
   const diffuseTex = useTexture(src);
+  diffuseTex.colorSpace = SRGBColorSpace;
   const uniforms = useMemo(
     () => ({
       uDiffuse: new Uniform(diffuseTex),
