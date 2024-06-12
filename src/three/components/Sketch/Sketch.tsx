@@ -8,7 +8,9 @@ import { useShallow } from "zustand/react/shallow";
 
 const Sketch = () => {
   const [active, setActive] = useState(1);
-  const camera = useThree((state) => state.camera);
+  const { camera, event } = useThree(
+    useShallow((state) => ({ camera: state.camera, event: state.events }))
+  );
   const controlDom = useInteractStore((state) => state.controlDom);
   const { scrollY, scrollSpeed } = useGameStore(
     useShallow((state) => ({
@@ -33,6 +35,11 @@ const Sketch = () => {
     loaded && useLoadedStore.setState({ ready: true });
   }, [loaded]);
 
+  useEffect(() => {
+    console.log(event);
+    event.connect!(controlDom);
+  }, [controlDom]);
+
   const imgData = useMemo(() => {
     const imgList = [...document.querySelectorAll("img")];
     const arr = Array(imgList.length).fill(0);
@@ -53,7 +60,7 @@ const Sketch = () => {
 
   return (
     <>
-      <OrbitControls domElement={controlDom} />
+      {/* <OrbitControls domElement={controlDom} /> */}
       <color attach={"background"} args={["black"]} />
       {imgData.map((item, index) => {
         return (

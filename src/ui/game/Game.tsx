@@ -38,6 +38,7 @@ const Game = () => {
 
   useEffect(() => {
     useLoadedStore.setState({ loaded: true });
+    useInteractStore.setState({ controlDom: gameRef.current!});
   }, []);
 
   const handleScroll = () => {
@@ -60,8 +61,6 @@ const Game = () => {
     timer = setTimeout(() => {
       useGameStore.setState({ scrollSpeed: 0 });
     }, 100);
-
-    
   };
 
   return (
