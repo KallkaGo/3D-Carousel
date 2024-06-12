@@ -4,7 +4,8 @@ import vertexShader from "@/three/components/shaders/vertex.glsl";
 import fragmentShader from "@/three/components/shaders/fragment.glsl";
 import { DoubleSide, MathUtils, Uniform, Vector2, Vector3 } from "three";
 import { useFrame } from "@react-three/fiber";
-import { useInteractStore } from "@utils/Store";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 interface IProp {
   position: [number, number, number];
@@ -21,6 +22,7 @@ const Art: FC<IProp> = ({
   src,
   center = 0,
 }) => {
+  const { contextSafe } = useGSAP();
   const diffuseTex = useTexture(src);
   const uniforms = useMemo(
     () => ({
@@ -48,21 +50,32 @@ const Art: FC<IProp> = ({
     return new Vector3(w, h, 1);
   }, [center]);
 
+  const handlePointerAction = contextSafe((flag: boolean) => {
+    gsap.killTweensOf(uniforms.uHoverState);
+    if (flag) {
+      gsap.to(uniforms.uHoverState, {
+        value: 1,
+        duration: 0.34,
+        ease: "power1.inOut",
+      });
+    } else {
+      gsap.to(uniforms.uHoverState, {
+        value: 0,
+        duration: 0.34,
+        ease: "power1.inOut",
+      });
+    }
+  });
+
   return (
     <mesh
       position={position}
       scale={meshScale}
       rotation-y={-MathUtils.degToRad(15)}
       rotation-z={MathUtils.degToRad(6)}
-      onPointerEnter={(e) => {
-        console.log("进入了", e);
-        uniforms.uHoverState.value = 1;
-      }}
+      onPointerEnter={() => handlePointerAction(true)}
       onPointerMove={handlePointerMove}
-      onPointerLeave={(e) => {
-        console.log("离开了", e);
-        uniforms.uHoverState.value = 0;
-      }}
+      onPointerLeave={() => handlePointerAction(false)}
     >
       <planeGeometry args={[1, 1, 32, 32]} />
       <shaderMaterial
