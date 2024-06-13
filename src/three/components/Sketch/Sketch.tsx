@@ -1,7 +1,14 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGameStore, useInteractStore, useLoadedStore } from "@utils/Store";
 import { useEffect, useMemo, useRef } from "react";
-import { MathUtils, Mesh, PerspectiveCamera, Uniform, Vector3 } from "three";
+import {
+  MathUtils,
+  Mesh,
+  PerspectiveCamera,
+  Uniform,
+  Vector2,
+  Vector3,
+} from "three";
 import Art from "./cpns/Art";
 import { useShallow } from "zustand/react/shallow";
 import vertexShader from "@/three/components/shaders/sphere/vertex.glsl";
@@ -23,9 +30,12 @@ const Sketch = () => {
       scrollSpeed: state.scrollSpeed,
     }))
   );
-  const baseRef = useRef<IBase>({ isDone: true, timer: null });
+  const baseRef = useRef<IBase>({
+    isDone: true,
+    timer: null,
+  });
   const sphereRef = useRef<Mesh>(null);
-  const followPosition = useRef<Vector3>(new Vector3(0, 0, 0));
+  const followPosition = useRef<Vector3>(new Vector3());
   const loaded = useLoadedStore((state) => state.loaded);
   const radiansToDegrees = (radians: number) => {
     return radians * (180 / Math.PI);
@@ -37,12 +47,13 @@ const Sketch = () => {
       -(event.clientY / window.innerHeight) * 2 + 1,
       0
     );
+    const pointer = new Vector2(event.clientX, event.clientY);
+
     vector.unproject(camera);
     const dir = vector.sub(camera.position).normalize();
     const distance = -camera.position.z / dir.z;
     const pos = camera.position.clone().add(dir.multiplyScalar(distance));
     followPosition.current.copy(pos);
-
     baseRef.current.isDone = false;
     baseRef.current.timer && clearTimeout(baseRef.current.timer);
     baseRef.current.timer = setTimeout(() => {
@@ -106,13 +117,13 @@ const Sketch = () => {
         uniforms.uOpacity.value = MathUtils.lerp(
           uniforms.uOpacity.value,
           0,
-          delta * 3
+          delta * 2
         );
       } else {
         uniforms.uOpacity.value = MathUtils.lerp(
           uniforms.uOpacity.value,
           1,
-          delta * 3
+          delta
         );
       }
     }
