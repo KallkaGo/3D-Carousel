@@ -5,7 +5,7 @@ export const GameWrapper = styled.div`
   height: 100%;
   overflow-y: auto;
   .container{
-    margin-top:450px;
+    margin-top:250px;
     pointer-events: none;
   }
 
